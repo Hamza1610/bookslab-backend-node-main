@@ -1,0 +1,316 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_PRISMA_URL") // uses connection pooling
+  //directUrl = env("POSTGRES_URL_NON_POOLING") // uses a direct connection
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model books {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @db.VarChar(100)
+  category_id Int
+  uploader    String    @db.Uuid
+  level       Int
+  description String?   @db.VarChar(1000)
+  pages       Int?
+  status      Int       @default(0)
+  created_at  DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  updated_at  DateTime? @db.Date
+  views       Int?      @default(0)
+  author      String    @db.VarChar(100)
+  ratings     Int?      @default(0)
+  edition     Int?      @default(1)
+  category    category  @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_books_category")
+  users       users     @relation(fields: [uploader], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_books_books")
+
+  levels   levels? @relation(fields: [levelsId], references: [id])
+  levelsId Int?
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model category {
+  category_name String  @db.VarChar(100)
+  category_id   Int     @id @default(autoincrement())
+  books         books[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model levels {
+  id    Int     @id @default(autoincrement())
+  name  String  @db.VarChar(100)
+  books books[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model libraries {
+  id      Int @id @default(autoincrement())
+  user_id Int
+  book_id Int
+  visible Int @default(1) @db.SmallInt
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model resources {
+  id         Int @id @default(autoincrement())
+  roadmap_id Int
+  book_id    Int
+  position   Int
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model roadmaps {
+  id      Int    @id @default(autoincrement())
+  stack   Int
+  name    String @db.VarChar(100)
+  user_id Int
+}
+
+model roles {
+  id    Int     @id @default(autoincrement())
+  role  String  @db.VarChar(255)
+  users users[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model stacks {
+  id   Int    @id @default(autoincrement())
+  name String @db.VarChar(255)
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  fullname                         String                             @db.VarChar(100)
+  username                         String                             @db.VarChar
+  email                            String                             @db.VarChar(255)
+  phone                            String?                            @db.VarChar(255)
+  location                         String?                            @db.VarChar(255)
+  password                         String                             @db.VarChar(255)
+  role_id                          Int?
+  last_login                       DateTime?                          @default(dbgenerated("CURRENT_DATE")) @db.Date
+  is_active                        Boolean?                           @default(false)
+  is_staff                         Boolean?                           @default(false)
+  is_superuser                     Boolean?                           @default(false)
+  date_joined                      DateTime?                          @default(dbgenerated("CURRENT_DATE")) @db.Date
+  id                               String                             @id @db.Uuid
+  status                           Boolean?
+  verified                         Boolean?
+  books                            books[]
+  token_blacklist_outstandingtoken token_blacklist_outstandingtoken[]
+  roles                            roles?                             @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user_role")
+}
+
+model Roles {
+  id    Int     @id @default(autoincrement())
+  roles String? @default("USER") @db.VarChar(255)
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model Tokens {
+  email      String?   @db.VarChar(255)
+  action     String?   @db.VarChar(20)
+  token      String?   @db.VarChar(20)
+  exp_date   DateTime? @db.Timestamp(6)
+  date_used  DateTime? @db.Timestamp(6)
+  created_at DateTime? @db.Timestamp(6)
+  used       Boolean?  @default(false)
+  confirmed  Boolean?  @default(false)
+
+  @@ignore
+}
+
+model auth_group {
+  id                     Int                      @id @default(autoincrement())
+  name                   String                   @unique @db.VarChar(150)
+  auth_group_permissions auth_group_permissions[]
+  user_customuser_groups user_customuser_groups[]
+
+  @@index([name], map: "auth_group_name_a6ea08ec_like")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_group_permissions {
+  id              Int             @id @default(autoincrement())
+  group_id        Int
+  permission_id   Int
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissio_permission_id_84c5c92e_fk_auth_perm")
+  auth_group      auth_group      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissions_group_id_b120cbf9_fk_auth_group_id")
+
+  @@unique([group_id, permission_id], map: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq")
+  @@index([group_id], map: "auth_group_permissions_group_id_b120cbf9")
+  @@index([permission_id], map: "auth_group_permissions_permission_id_84c5c92e")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_permission {
+  id                               Int                                @id @default(autoincrement())
+  name                             String                             @db.VarChar(255)
+  content_type_id                  Int
+  codename                         String                             @db.VarChar(100)
+  auth_group_permissions           auth_group_permissions[]
+  django_content_type              django_content_type                @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_permission_content_type_id_2f476e4b_fk_django_co")
+  user_customuser_user_permissions user_customuser_user_permissions[]
+
+  @@unique([content_type_id, codename], map: "auth_permission_content_type_id_codename_01ab375a_uniq")
+  @@index([content_type_id], map: "auth_permission_content_type_id_2f476e4b")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model django_admin_log {
+  id                  Int                  @id @default(autoincrement())
+  action_time         DateTime             @db.Timestamptz(6)
+  object_id           String?
+  object_repr         String               @db.VarChar(200)
+  action_flag         Int                  @db.SmallInt
+  change_message      String
+  content_type_id     Int?
+  user_id             String               @db.Uuid
+  django_content_type django_content_type? @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_content_type_id_c4bce8eb_fk_django_co")
+  user_customuser     user_customuser      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "django_admin_log_user_id_c564eba6_fk_user_customuser_id")
+
+  @@index([content_type_id], map: "django_admin_log_content_type_id_c4bce8eb")
+  @@index([user_id], map: "django_admin_log_user_id_c564eba6")
+}
+
+model django_content_type {
+  id               Int                @id @default(autoincrement())
+  app_label        String             @db.VarChar(100)
+  model            String             @db.VarChar(100)
+  auth_permission  auth_permission[]
+  django_admin_log django_admin_log[]
+
+  @@unique([app_label, model], map: "django_content_type_app_label_model_76bd3d3b_uniq")
+}
+
+model django_migrations {
+  id      Int      @id @default(autoincrement())
+  app     String   @db.VarChar(255)
+  name    String   @db.VarChar(255)
+  applied DateTime @db.Timestamptz(6)
+}
+
+model django_session {
+  session_key  String   @id @db.VarChar(40)
+  session_data String
+  expire_date  DateTime @db.Timestamptz(6)
+
+  @@index([expire_date], map: "django_session_expire_date_a5c62663")
+  @@index([session_key], map: "django_session_session_key_c0390e0f_like")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model token_blacklist_blacklistedtoken {
+  id                               BigInt                           @id @default(autoincrement())
+  blacklisted_at                   DateTime                         @db.Timestamptz(6)
+  token_id                         BigInt                           @unique
+  token_blacklist_outstandingtoken token_blacklist_outstandingtoken @relation(fields: [token_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "token_blacklist_blacklistedtoken_token_id_3cc7fe56_fk")
+}
+
+model token_blacklist_outstandingtoken {
+  id                               BigInt                            @id @default(autoincrement())
+  token                            String
+  created_at                       DateTime?                         @db.Timestamptz(6)
+  expires_at                       DateTime                          @db.Timestamptz(6)
+  user_id                          String?                           @db.Uuid
+  jti                              String                            @unique(map: "token_blacklist_outstandingtoken_jti_hex_d9bdf6f7_uniq") @db.VarChar(255)
+  token_blacklist_blacklistedtoken token_blacklist_blacklistedtoken?
+  users                            users?                            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "token_blacklist_outs_user_id_83bc629a_fk_users_id")
+
+  @@index([jti], map: "token_blacklist_outstandingtoken_jti_hex_d9bdf6f7_like")
+  @@index([user_id], map: "token_blacklist_outstandingtoken_user_id_83bc629a")
+}
+
+model tokens {
+  id         BigInt    @id @default(autoincrement())
+  email      String    @db.VarChar(254)
+  action     String    @db.VarChar(20)
+  token      String    @db.VarChar(200)
+  exp_date   Float
+  date_used  DateTime? @db.Timestamptz(6)
+  created_at DateTime  @db.Timestamptz(6)
+  used       Boolean
+  confirmed  Boolean   @default(false)
+}
+
+model user_contact_messages {
+  id      Int     @id @default(autoincrement())
+  name    String? @db.VarChar(255)
+  email   String? @db.VarChar(255)
+  message String?
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model user_customuser {
+  last_login                       DateTime?                          @db.Timestamptz(6)
+  is_superuser                     Boolean
+  date_joined                      DateTime                           @db.Timestamptz(6)
+  id                               String                             @id @db.Uuid
+  fullname                         String                             @db.VarChar(100)
+  username                         String                             @unique @db.VarChar(50)
+  email                            String                             @unique @db.VarChar(254)
+  phone                            String?                            @unique @db.VarChar(128)
+  location                         String                             @db.VarChar(255)
+  password                         String                             @db.VarChar(255)
+  status                           Boolean
+  verified                         Boolean
+  is_active                        Boolean
+  is_staff                         Boolean
+  role_id                          BigInt?
+  django_admin_log                 django_admin_log[]
+  user_role                        user_role?                         @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_customuser_role_id_0c7b403e_fk_user_role_id")
+  user_customuser_groups           user_customuser_groups[]
+  user_customuser_user_permissions user_customuser_user_permissions[]
+
+  @@index([email], map: "user_customuser_email_2292cf6d_like")
+  @@index([phone], map: "user_customuser_phone_51b3d716_like")
+  @@index([role_id], map: "user_customuser_role_id_0c7b403e")
+  @@index([username], map: "user_customuser_username_24be6f7e_like")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model user_customuser_groups {
+  id              Int             @id @default(autoincrement())
+  customuser_id   String          @db.Uuid
+  group_id        Int
+  user_customuser user_customuser @relation(fields: [customuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_customuser_grou_customuser_id_192632a7_fk_user_cust")
+  auth_group      auth_group      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_customuser_groups_group_id_bcbc9e48_fk_auth_group_id")
+
+  @@unique([customuser_id, group_id], map: "user_customuser_groups_customuser_id_group_id_e0a2f621_uniq")
+  @@index([customuser_id], map: "user_customuser_groups_customuser_id_192632a7")
+  @@index([group_id], map: "user_customuser_groups_group_id_bcbc9e48")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model user_customuser_user_permissions {
+  id              Int             @id @default(autoincrement())
+  customuser_id   String          @db.Uuid
+  permission_id   Int
+  user_customuser user_customuser @relation(fields: [customuser_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_customuser_user_customuser_id_4552d9cc_fk_user_cust")
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_customuser_user_permission_id_e57e8b9a_fk_auth_perm")
+
+  @@unique([customuser_id, permission_id], map: "user_customuser_user_per_customuser_id_permission_a5da865d_uniq")
+  @@index([customuser_id], map: "user_customuser_user_permissions_customuser_id_4552d9cc")
+  @@index([permission_id], map: "user_customuser_user_permissions_permission_id_e57e8b9a")
+}
+
+model user_role {
+  id              BigInt            @id @default(autoincrement())
+  role            String            @db.VarChar(50)
+  user_customuser user_customuser[]
+}
+
+model user_tokens {
+  id         BigInt    @id @default(autoincrement())
+  email      String    @db.VarChar(254)
+  action     String    @db.VarChar(20)
+  token      String    @db.VarChar(200)
+  exp_date   Float
+  date_used  DateTime? @db.Timestamptz(6)
+  created_at DateTime  @db.Timestamptz(6)
+  used       Boolean
+}

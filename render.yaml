@@ -1,0 +1,7 @@
+services:
+  - name: bookslab-backend-node
+    buildCommand: npm run build
+    startCommand: npm run dev
+    env:
+      - key: PAT
+        fromSecret: PAT
